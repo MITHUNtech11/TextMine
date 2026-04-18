@@ -1,0 +1,17 @@
+from config.settings import *
+
+__all__ = [
+    "BASE_DIR",
+    "TESSERACT_PATH",
+    "GOOGLE_API_KEY",
+    "GENTLE_OCR_CONFIG",
+    "SCANNED_OCR_CONFIG",
+    "LOW_CONFIDENCE_THRESHOLD",
+    "SUPPORTED_EXTENSIONS",
+    "MAX_RETRIES",
+    "DEFAULT_ZOOM_FACTOR",
+    "DEFAULT_NUM_WORKERS",
+    "API_TITLE",
+    "API_HOST",
+    "API_PORT",
+]
