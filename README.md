@@ -1,4 +1,3 @@
-@"
 # ⛏️ TextMine - AI-Powered Document Text Extraction
 
 [![GitHub license](https://img.shields.io/github/license/yourusername/TextMine)](https://github.com/yourusername/TextMine/blob/main/LICENSE)
@@ -357,4 +356,3 @@ If you encounter issues:
 
 **Last Updated:** November 2025
 **Version:** 1.0
-\`\`@ | Out-File -FilePath README.md -Encoding UTF8
