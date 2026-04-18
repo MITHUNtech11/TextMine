@@ -3,6 +3,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, Literal
 
 from config.settings import API_TITLE, API_HOST, API_PORT, SUPPORTED_EXTENSIONS
@@ -18,6 +19,15 @@ app = FastAPI(
     title=API_TITLE,
     description="TextMine: Intelligent text extraction from images and documents using AI agents and OCR",
     version="2.0"
+)
+
+# Allow static frontends (for example GitHub Pages) to call the API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
