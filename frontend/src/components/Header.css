@@ -1,0 +1,107 @@
+.header {
+  background: linear-gradient(90deg, rgba(15, 15, 30, 0.9) 0%, rgba(26, 15, 46, 0.9) 50%, rgba(15, 26, 46, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid;
+  border-image: linear-gradient(90deg, #7c3aed, #00d9ff, #f59e0b) 1;
+  padding: 1.5rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #7c3aed 0%, #00d9ff 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.3);
+}
+
+.logo-text h1 {
+  font-size: 2rem;
+  background: linear-gradient(135deg, #7c3aed, #00d9ff, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  margin: 0;
+}
+
+.logo-text p {
+  font-size: 0.9rem;
+  color: #a0aec0;
+  margin: 0;
+  font-weight: 500;
+}
+
+.github-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(0, 217, 255, 0.1));
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 8px;
+  color: #00d9ff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.github-link:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(0, 217, 255, 0.2));
+  border-color: rgba(0, 217, 255, 0.5);
+  box-shadow: 0 8px 16px rgba(0, 217, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.header-gradient {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #7c3aed, #00d9ff, transparent);
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .logo-text h1 {
+    font-size: 1.5rem;
+  }
+
+  .logo-text p {
+    font-size: 0.8rem;
+  }
+
+  .github-link span {
+    display: none;
+  }
+
+  .github-link {
+    padding: 0.5rem;
+  }
+}
