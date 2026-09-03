@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from json import JSONDecodeError
 from google import genai
@@ -13,10 +14,11 @@ from config.settings import REQUEST_TIMEOUT, REQUEST_DELAY
 class LLMParsingAgent(BaseAgent):
     """Agent responsible for structured parsing using Gemini"""
     
-    def __init__(self, api_key: str, model_name: str = "gemini-pro"):
+    def __init__(self, api_key: str, model_name: str | None = None):
         super().__init__("LLMParsingAgent")
         self.api_key = api_key
-        self.model_name = model_name
+        env_model = os.getenv("GEMINI_MODEL")
+        self.model_name = model_name or env_model or "gemini-2.5-flash"
         self.client = genai.Client(api_key=self.api_key)
         self.last_request_time = 0
 

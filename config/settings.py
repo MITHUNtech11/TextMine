@@ -9,6 +9,7 @@ load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 TESSERACT_PATH = os.getenv("TESSERACT_PATH")
 # Some editors may save .env with UTF-8 BOM, which can prefix the first key.
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("\ufeffGOOGLE_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 if not GOOGLE_API_KEY:
     raise RuntimeError("GOOGLE_API_KEY environment variable not set.")

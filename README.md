@@ -107,12 +107,27 @@ TESSERACT_PATH=C:\\Program Files\\Tesseract-OCR\\tesseract.exe
 2. Click "Create API Key"
 3. Copy and paste into .env
 
-### 4. Run Server
+### 4. Run the Backend
+
+Start the FastAPI backend from the project root:
 
 \`\`\`powershell
 uvicorn main:app --reload
-# Server runs on http://localhost:8000
+# API runs on http://localhost:8000
 \`\`\`
+
+### 5. Run the Frontend
+
+Open a second PowerShell window, change to the project root, and serve the
+static frontend:
+
+\`\`\`powershell
+python -m http.server 5500 --bind 127.0.0.1 --directory site
+\`\`\`
+
+Open the frontend at [http://127.0.0.1:5500/](http://127.0.0.1:5500/).
+The frontend is configured to send extraction requests to the backend at
+`http://127.0.0.1:8000`.
 
 ## 📖 Usage
 
@@ -324,9 +339,22 @@ Get-ChildItem -Recurse -Filter "__init__.py"
 ## 🚀 Deployment
 
 ### Local Development
+
+Start the backend in one terminal:
+
 \`\`\`powershell
 uvicorn main:app --reload
 \`\`\`
+
+Start the frontend in a second terminal:
+
+\`\`\`powershell
+python -m http.server 5500 --bind 127.0.0.1 --directory site
+\`\`\`
+
+- Frontend: [http://127.0.0.1:5500/](http://127.0.0.1:5500/)
+- API: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- API documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ### Production (Windows)
 \`\`\`powershell

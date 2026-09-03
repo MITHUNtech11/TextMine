@@ -1,20 +1,23 @@
 const modeButtons = Array.from(document.querySelectorAll('.mode-btn'));
-const apiUrlInput = document.getElementById('apiUrl');
-const healthButton = document.getElementById('healthButton');
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const clearFileButton = document.getElementById('clearFile');
 const parseButton = document.getElementById('parseButton');
 const statusMessage = document.getElementById('statusMessage');
 const fileMeta = document.getElementById('fileMeta');
-const summaryGrid = document.getElementById('summaryGrid');
+const previewMode = document.getElementById('previewMode');
+const previewModeText = document.getElementById('previewModeText');
+const previewIcon = document.getElementById('previewIcon');
+const filePreviewName = document.getElementById('filePreviewName');
+const filePreviewMeta = document.getElementById('filePreviewMeta');
+const previewFormat = document.getElementById('previewFormat');
+const previewSize = document.getElementById('previewSize');
 const jsonOutput = document.getElementById('jsonOutput');
-const copyJsonButton = document.getElementById('copyJson');
-const downloadJsonButton = document.getElementById('downloadJson');
+const overviewOutput = document.getElementById('overviewOutput');
 
-const STORAGE_KEY = 'textmine-api-url';
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'tiff', 'bmp'];
+const DEFAULT_RESULT = { message: 'Upload a document and click Extract Text.' };
 
 const state = {
   mode: 'offline',
@@ -23,28 +26,23 @@ const state = {
 };
 
 function init() {
-  const savedApiUrl = localStorage.getItem(STORAGE_KEY);
-  if (savedApiUrl) {
-    apiUrlInput.value = savedApiUrl;
-  }
-
   modeButtons.forEach((button) => {
     button.addEventListener('click', () => setMode(button.dataset.mode));
   });
 
-  apiUrlInput.addEventListener('change', () => {
-    const cleaned = normalizeUrl(apiUrlInput.value);
-    apiUrlInput.value = cleaned;
-    localStorage.setItem(STORAGE_KEY, cleaned);
-  });
+  if (fileInput) {
+    fileInput.addEventListener('change', onFileSelect);
+  }
 
-  healthButton.addEventListener('click', checkApiHealth);
-  fileInput.addEventListener('change', onFileSelect);
+if (clearFileButton) {
   clearFileButton.addEventListener('click', clearSelectedFile);
-  parseButton.addEventListener('click', parseResume);
-  copyJsonButton.addEventListener('click', copyJson);
-  downloadJsonButton.addEventListener('click', downloadJson);
+}
 
+if (parseButton) {
+  parseButton.addEventListener('click', parseResume);
+}
+
+if (dropZone) {
   ['dragenter', 'dragover'].forEach((eventName) => {
     dropZone.addEventListener(eventName, (event) => {
       event.preventDefault();
@@ -66,39 +64,41 @@ function init() {
     }
     assignFile(droppedFile);
   });
+}
 
-  applyRevealAnimation();
-  renderSummaryCards([{ label: 'Status', value: 'Awaiting parse' }]);
+renderResult(DEFAULT_RESULT);
+applyRevealAnimation();
+updateFilePreview();
 }
 
 function applyRevealAnimation() {
-  const revealNodes = document.querySelectorAll('.reveal');
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry, index) => {
-        if (entry.isIntersecting) {
-          const delay = Math.min(index * 50, 300);
-          setTimeout(() => entry.target.classList.add('visible'), delay);
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.1 }
-  );
+const revealNodes = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        const delay = Math.min(index * 50, 300);
+        setTimeout(() => entry.target.classList.add('visible'), delay);
+        observer.unobserve(entry.target);
+      }
+    });
+  },
+  { threshold: 0.1 }
+);
 
-  revealNodes.forEach((node) => observer.observe(node));
+revealNodes.forEach((node) => observer.observe(node));
 }
 
 function setMode(mode) {
-  state.mode = mode;
-  modeButtons.forEach((button) => {
-    button.classList.toggle('active', button.dataset.mode === mode);
-  });
-  setStatus('neutral', `Mode selected: ${mode === 'online' ? 'AI Enhanced' : 'Offline'}.`);
-}
+state.mode = mode;
+modeButtons.forEach((button) => {
+  button.classList.toggle('active', button.dataset.mode === mode);
+});
 
-function normalizeUrl(value) {
-  return (value || '').trim().replace(/\/+$/, '');
+const label = mode === 'online' ? 'AI + OCR' : 'OCR Only';
+previewMode.textContent = label;
+previewModeText.textContent = label;
+setStatus('neutral', `Mode selected: ${label}.`);
 }
 
 function onFileSelect(event) {
@@ -114,7 +114,7 @@ function assignFile(file) {
 
   if (!ALLOWED_EXTENSIONS.includes(extension)) {
     clearSelectedFile();
-    setStatus('err', 'Unsupported file format. Please upload a resume document or image.');
+    setStatus('err', 'Unsupported file format. Please upload a document image or text file.');
     return;
   }
 
@@ -126,180 +126,237 @@ function assignFile(file) {
 
   state.file = file;
   fileMeta.textContent = `${file.name} (${formatBytes(file.size)})`;
+  updateFilePreview(file);
   setStatus('ok', 'File selected. You can now parse.');
 }
 
 function clearSelectedFile() {
   state.file = null;
+state.result = null;
+if (fileInput) {
   fileInput.value = '';
-  fileMeta.textContent = 'No file selected';
+}
+fileMeta.textContent = 'No file selected';
+updateFilePreview();
+renderResult(DEFAULT_RESULT);
+}
+
+function updateFilePreview(file = state.file) {
+const label = state.mode === 'online' ? 'AI + OCR' : 'OCR Only';
+previewMode.textContent = label;
+previewModeText.textContent = label;
+
+if (!file) {
+  previewIcon.textContent = 'FILE';
+  filePreviewName.textContent = 'No file selected';
+  filePreviewMeta.textContent = 'Upload a document to begin.';
+  previewFormat.textContent = '—';
+  previewSize.textContent = '—';
+  return;
+}
+
+const extension = (file.name.split('.').pop() || '').toUpperCase();
+previewIcon.textContent = extension || 'FILE';
+filePreviewName.textContent = file.name;
+filePreviewMeta.textContent = 'Ready to extract';
+previewFormat.textContent = extension || 'Unknown';
+previewSize.textContent = formatBytes(file.size);
 }
 
 function formatBytes(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
-    return '0 B';
-  }
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const amount = bytes / 1024 ** index;
-  return `${amount.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+if (!Number.isFinite(bytes) || bytes <= 0) {
+  return '0 B';
+}
+
+const units = ['B', 'KB', 'MB', 'GB'];
+const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+const amount = bytes / 1024 ** index;
+return `${amount.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
 }
 
 function endpointForMode(mode) {
-  return mode === 'online' ? '/parse_resume/online' : '/parse_resume/offline';
+return mode === 'online' ? '/parse_resume/online' : '/parse_resume/offline';
 }
 
-async function checkApiHealth() {
-  const baseUrl = normalizeUrl(apiUrlInput.value);
-  if (!baseUrl) {
-    setStatus('warn', 'Enter your backend API URL first.');
-    return;
-  }
+function escapeHtml(value) {
+return String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/\"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+}
 
-  setStatus('neutral', 'Checking API health...');
+function listMarkup(items) {
+if (!Array.isArray(items) || items.length === 0) {
+  return '<span class="empty-state">Not available</span>';
+}
 
-  try {
-    const response = await fetch(`${baseUrl}/health`, { method: 'GET' });
-    if (!response.ok) {
-      throw new Error(`Health check failed (${response.status}).`);
-    }
-    const healthPayload = await response.json();
-    setStatus('ok', `API is reachable. Status: ${healthPayload.status || 'healthy'}.`);
-  } catch (error) {
-    setStatus('err', error.message || 'Unable to reach API endpoint.');
-  }
+return items
+  .filter(Boolean)
+  .map((item) => `<span class="tag">${escapeHtml(item)}</span>`)
+  .join('');
+}
+
+function buildSectionTitle(title) {
+return `<div class="result-section-title">${escapeHtml(title)}</div>`;
+}
+
+function renderResult(result) {
+if (!jsonOutput || !overviewOutput) {
+  return;
+}
+
+const payload = result && Object.keys(result).length ? result : DEFAULT_RESULT;
+const parsed = payload.parsed_json || payload;
+const extractedText = payload.extracted_text || parsed.extracted_text || '';
+const pageCount = payload.page_count || parsed.page_count || 1;
+const confidence = payload.confidence_score || parsed.confidence_score || payload.accuracy || parsed.accuracy || 0;
+const modeLabel = payload.processing_mode === 'online' ? 'AI + OCR' : 'OCR Only';
+const fileName = state.file?.name || 'Document';
+const charCount = extractedText.length;
+const previewText = extractedText
+  ? extractedText.replace(/\s+/g, ' ').trim().slice(0, 220)
+  : 'No text was extracted from this file.';
+
+const structuredEntries = Object.entries(parsed)
+  .filter(([key]) => !['extracted_text', 'page_count', 'confidence_score', 'processing_mode'].includes(key))
+  .slice(0, 6);
+
+const detailMarkup = structuredEntries.length
+  ? structuredEntries
+      .map(([key, value]) => {
+        const displayValue = Array.isArray(value)
+          ? value.join(', ')
+          : typeof value === 'object' && value !== null
+            ? JSON.stringify(value)
+            : String(value ?? 'Not available');
+
+        return `
+          <div class="info-row">
+            <div class="info-label">${escapeHtml(key.replace(/_/g, ' '))}</div>
+            <div class="info-value">${escapeHtml(displayValue)}</div>
+          </div>
+        `;
+      })
+      .join('')
+  : '<span class="empty-state">No structured metadata detected.</span>';
+
+const rawTextMarkup = extractedText
+  ? `<div class="raw-text">${escapeHtml(extractedText)}</div>`
+  : '<span class="empty-state">No extracted text available.</span>';
+
+overviewOutput.innerHTML = `
+  <div class="result-card hero-card">
+    <div>
+      <div class="result-eyebrow">Extraction overview</div>
+      <h4>${escapeHtml(fileName)}</h4>
+    </div>
+    <div class="stats-grid">
+      <div class="mini-stat">
+        <span>Pages</span>
+        <strong>${escapeHtml(pageCount)}</strong>
+      </div>
+      <div class="mini-stat">
+        <span>Chars</span>
+        <strong>${escapeHtml(charCount)}</strong>
+      </div>
+      <div class="mini-stat">
+        <span>Confidence</span>
+        <strong>${Number(confidence).toFixed(2)}%</strong>
+      </div>
+      <div class="mini-stat">
+        <span>Mode</span>
+        <strong>${escapeHtml(modeLabel)}</strong>
+      </div>
+    </div>
+  </div>
+  <div class="result-card">
+    ${buildSectionTitle('OCR extracted text')}
+    ${rawTextMarkup}
+  </div>
+`;
+
+jsonOutput.innerHTML = `
+  <div class="result-shell">
+    <div class="result-card">
+      ${buildSectionTitle('Document preview')}
+      <p class="summary-text">${escapeHtml(previewText)}</p>
+    </div>
+
+    <div class="result-card">
+      ${buildSectionTitle('Detected details')}
+      ${detailMarkup}
+    </div>
+  </div>
+`;
 }
 
 async function parseResume() {
-  const baseUrl = normalizeUrl(apiUrlInput.value);
-  if (!baseUrl) {
-    setStatus('warn', 'Please provide your backend API URL.');
-    return;
-  }
+const baseUrl = 'http://127.0.0.1:8000';
 
-  if (!state.file) {
-    setStatus('warn', 'Please select a file before parsing.');
-    return;
-  }
+if (!state.file) {
+  setStatus('warn', 'Please select a file before parsing.');
+  return;
+}
 
-  const endpoint = endpointForMode(state.mode);
-  const formData = new FormData();
-  formData.append('file', state.file);
+const endpoint = endpointForMode(state.mode);
+const formData = new FormData();
+formData.append('file', state.file);
 
+if (parseButton) {
   parseButton.disabled = true;
-  parseButton.textContent = 'Parsing...';
-  setStatus('neutral', 'Parsing in progress. This may take a few moments.');
-
-  try {
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-
-    const responseText = await response.text();
-    let payload;
-
-    try {
-      payload = JSON.parse(responseText);
-    } catch {
-      payload = { message: responseText || 'No JSON payload returned by API.' };
-    }
-
-    if (!response.ok) {
-      const detail = payload.detail || payload.message || `Request failed (${response.status}).`;
-      throw new Error(detail);
-    }
-
-    state.result = payload;
-    jsonOutput.textContent = JSON.stringify(payload, null, 2);
-    renderSummaryCards(buildSummary(payload));
-    copyJsonButton.disabled = false;
-    downloadJsonButton.disabled = false;
-
-    setStatus('ok', 'Parse completed successfully.');
-  } catch (error) {
-    setStatus('err', error.message || 'Parsing failed.');
-  } finally {
-    parseButton.disabled = false;
-    parseButton.textContent = 'Parse Resume';
-  }
+  parseButton.textContent = 'Extracting...';
 }
 
-function buildSummary(payload) {
-  const topLevelKeys = Object.keys(payload || {});
+setStatus('neutral', 'Extracting text in progress. This may take a few moments.');
 
-  const skills = payload.skills || payload?.parsed_data?.skills || [];
-  const experience = payload.experience || payload?.parsed_data?.experience || [];
-  const education = payload.education || payload?.parsed_data?.education || [];
-
-  return [
-    { label: 'Mode', value: state.mode === 'online' ? 'AI Enhanced' : 'Offline' },
-    { label: 'Top-level fields', value: String(topLevelKeys.length) },
-    { label: 'Skills', value: String(Array.isArray(skills) ? skills.length : 0) },
-    { label: 'Experience entries', value: String(Array.isArray(experience) ? experience.length : 0) },
-    { label: 'Education entries', value: String(Array.isArray(education) ? education.length : 0) },
-  ];
-}
-
-function renderSummaryCards(items) {
-  summaryGrid.innerHTML = '';
-  items.forEach((item) => {
-    const card = document.createElement('div');
-    card.className = 'summary-card';
-
-    const label = document.createElement('p');
-    label.className = 'summary-label';
-    label.textContent = item.label;
-
-    const value = document.createElement('p');
-    value.className = 'summary-value';
-    value.textContent = item.value;
-
-    card.appendChild(label);
-    card.appendChild(value);
-    summaryGrid.appendChild(card);
+try {
+  const response = await fetch(`${baseUrl}${endpoint}`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      Accept: 'application/json',
+    },
   });
-}
 
-async function copyJson() {
-  if (!state.result) {
-    return;
-  }
+  const responseText = await response.text();
+  let payload;
 
   try {
-    await navigator.clipboard.writeText(JSON.stringify(state.result, null, 2));
-    setStatus('ok', 'JSON copied to clipboard.');
+    payload = JSON.parse(responseText);
   } catch {
-    setStatus('warn', 'Clipboard copy is not available in this browser context.');
+    payload = { message: responseText || 'No JSON payload returned by API.' };
+  }
+
+  if (!response.ok) {
+    const detail = payload.detail || payload.message || `Request failed (${response.status}).`;
+    throw new Error(detail);
+  }
+
+  state.result = payload;
+  renderResult(payload);
+  updateFilePreview(state.file);
+  setStatus('ok', 'Text extraction completed successfully.');
+} catch (error) {
+  const message = error && error.message ? error.message : 'Parsing failed.';
+  setStatus('err', message);
+  renderResult({ message, error: message });
+} finally {
+  if (parseButton) {
+    parseButton.disabled = false;
+    parseButton.textContent = 'Extract Text';
   }
 }
-
-function downloadJson() {
-  if (!state.result) {
-    return;
-  }
-
-  const blob = new Blob([JSON.stringify(state.result, null, 2)], { type: 'application/json' });
-  const href = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  const baseName = state.file ? state.file.name.replace(/\.[^/.]+$/, '') : 'resume';
-
-  link.href = href;
-  link.download = `${baseName}_parsed.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(href);
-
-  setStatus('ok', 'JSON file downloaded.');
 }
 
 function setStatus(type, message) {
-  statusMessage.className = `status-message ${type}`;
-  statusMessage.textContent = message;
+if (!statusMessage) {
+  return;
+}
+
+statusMessage.className = `status-message ${type}`;
+statusMessage.textContent = message;
 }
 
 init();

@@ -19,6 +19,7 @@ from config.settings import (
     SCANNED_OCR_CONFIG,
     LOW_CONFIDENCE_THRESHOLD,
     GOOGLE_API_KEY,
+    GEMINI_MODEL,
     DEFAULT_NUM_WORKERS,
 )
 
@@ -68,7 +69,7 @@ class ResumeParsingOrchestrator:
         
         # Only initialize LLM agent in online mode
         if self.mode == "online":
-            self.llm_agent = LLMParsingAgent(GOOGLE_API_KEY)
+            self.llm_agent = LLMParsingAgent(GOOGLE_API_KEY, GEMINI_MODEL)
             self.quality_agent = QualityCheckAgent()
             self.recovery_agent = RecoveryAgent()
         
