@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict, Any
 from enum import Enum
 
 
@@ -42,10 +42,25 @@ class QualificationEntry(BaseModel):
     year_of_completion: Optional[str] = Field(None, description="Completion year in YYYY-MM format.")
 
 
+class DocumentSection(BaseModel):
+    heading: Optional[str] = Field(None, description="Section heading or topic.")
+    content: str = Field(..., description="Cleaned, readable text content of this section.")
+
+
+class DocumentExtractionRoot(BaseModel):
+    readable_text: str = Field(..., description="The complete, restored, clean, readable text recovered from the document.")
+    document_title: Optional[str] = Field(None, description="Inferred document title or document category.")
+    summary: Optional[str] = Field(None, description="A concise summary of the recovered document.")
+    sections: List[DocumentSection] = Field(default_factory=list, description="Identified document sections with their clean readable text.")
+    key_information: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Key entities such as names, organizations, dates, contacts, numbers.")
+    quality_assessment: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Assessment of original quality and text restoration confidence.")
+    resume_data: Optional[Dict[str, Any]] = Field(None, description="Structured resume data if the document is a resume or CV.")
+
+
 class ResumeRoot(BaseModel):
-    first_name: str
-    last_name: str
-    name: str = Field(description="The candidate's full name.")
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    name: Optional[str] = Field(None, description="The candidate's full name.")
     initial: Optional[str] = Field(
         None,
         description="The primary initial, determined by prioritizing standalone single letters, or then last name's first letter."
@@ -75,3 +90,4 @@ class ProcessingStage(str, Enum):
     PARSING = "parsing"
     COMPLETE = "complete"
     FAILED = "failed"
+

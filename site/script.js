@@ -12,7 +12,6 @@ const filePreviewName = document.getElementById('filePreviewName');
 const filePreviewMeta = document.getElementById('filePreviewMeta');
 const previewFormat = document.getElementById('previewFormat');
 const previewSize = document.getElementById('previewSize');
-const jsonOutput = document.getElementById('jsonOutput');
 const overviewOutput = document.getElementById('overviewOutput');
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -187,109 +186,112 @@ return String(value ?? '')
   .replace(/'/g, '&#039;');
 }
 
-function listMarkup(items) {
-if (!Array.isArray(items) || items.length === 0) {
-  return '<span class="empty-state">Not available</span>';
-}
-
-return items
-  .filter(Boolean)
-  .map((item) => `<span class="tag">${escapeHtml(item)}</span>`)
-  .join('');
-}
-
 function buildSectionTitle(title) {
 return `<div class="result-section-title">${escapeHtml(title)}</div>`;
 }
 
 function renderResult(result) {
-if (!jsonOutput || !overviewOutput) {
-  return;
-}
+  if (!overviewOutput) {
+    return;
+  }
 
-const payload = result && Object.keys(result).length ? result : DEFAULT_RESULT;
-const parsed = payload.parsed_json || payload;
-const extractedText = payload.extracted_text || parsed.extracted_text || '';
-const pageCount = payload.page_count || parsed.page_count || 1;
-const confidence = payload.confidence_score || parsed.confidence_score || payload.accuracy || parsed.accuracy || 0;
-const modeLabel = payload.processing_mode === 'online' ? 'AI + OCR' : 'OCR Only';
-const fileName = state.file?.name || 'Document';
-const charCount = extractedText.length;
-const previewText = extractedText
-  ? extractedText.replace(/\s+/g, ' ').trim().slice(0, 220)
-  : 'No text was extracted from this file.';
+  const payload = result && Object.keys(result).length ? result : DEFAULT_RESULT;
+  const parsed = payload.parsed_json || payload;
+  const extractedText = payload.extracted_text || parsed.extracted_text || '';
+  const readableText = payload.readable_text || parsed.readable_text || '';
+  const pageCount = payload.page_count || parsed.page_count || 1;
+  const confidence = payload.confidence_score || parsed.confidence_score || payload.accuracy || parsed.accuracy || 0;
+  const modeLabel = payload.processing_mode === 'online' || state.mode === 'online' ? 'AI + OCR' : 'OCR Only';
+  const fileName = state.file?.name || 'Document';
+  const charCount = (readableText || extractedText).length;
 
-const structuredEntries = Object.entries(parsed)
-  .filter(([key]) => !['extracted_text', 'page_count', 'confidence_score', 'processing_mode'].includes(key))
-  .slice(0, 6);
+  const rawTextMarkup = extractedText
+    ? `<div class="raw-text">${escapeHtml(extractedText)}</div>`
+    : '<span class="empty-state">No OCR text available.</span>';
 
-const detailMarkup = structuredEntries.length
-  ? structuredEntries
-      .map(([key, value]) => {
-        const displayValue = Array.isArray(value)
-          ? value.join(', ')
-          : typeof value === 'object' && value !== null
-            ? JSON.stringify(value)
-            : String(value ?? 'Not available');
+  const restoredTextMarkup = readableText
+    ? `<div class="raw-text" style="background: rgba(42, 157, 255, 0.05); border: 1px solid rgba(42, 157, 255, 0.2); font-size: 0.9rem; line-height: 1.7;">${escapeHtml(readableText)}</div>`
+    : rawTextMarkup;
 
-        return `
-          <div class="info-row">
-            <div class="info-label">${escapeHtml(key.replace(/_/g, ' '))}</div>
-            <div class="info-value">${escapeHtml(displayValue)}</div>
+  const docSummary = parsed.summary
+    ? `<div class="summary-box" style="margin-bottom: 0.8rem; padding: 0.75rem; border-radius: 8px; background: rgba(255, 122, 0, 0.08); border-left: 3px solid var(--brand);">
+        <strong style="font-size: 0.8rem; text-transform: uppercase; color: var(--brand-strong); display: block; margin-bottom: 0.25rem;">Document Summary</strong>
+        <p class="summary-text" style="font-size: 0.88rem;">${escapeHtml(parsed.summary)}</p>
+      </div>`
+    : '';
+
+  const docTitle = parsed.document_title
+    ? `<span class="chip" style="margin-left: 0.5rem; font-size: 0.75rem;">${escapeHtml(parsed.document_title)}</span>`
+    : '';
+
+  let sectionsMarkup = '';
+  if (Array.isArray(parsed.sections) && parsed.sections.length > 0) {
+    sectionsMarkup = `
+      <div class="result-card" style="margin-top: 1rem;">
+        ${buildSectionTitle('Recovered Document Sections')}
+        <div style="display: grid; gap: 0.75rem;">
+          ${parsed.sections.map((sec) => `
+            <div style="padding: 0.6rem; border-radius: 8px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(42, 157, 255, 0.1);">
+              ${sec.heading ? `<strong style="font-size: 0.85rem; color: var(--brand-strong); display: block; margin-bottom: 0.2rem;">${escapeHtml(sec.heading)}</strong>` : ''}
+              <div style="font-size: 0.82rem; color: var(--text); white-space: pre-wrap;">${escapeHtml(sec.content)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  const isOnlineResult = Boolean(payload.processing_mode === 'online' || (state.mode === 'online' && readableText));
+
+  overviewOutput.innerHTML = `
+    <div class="result-card hero-card">
+      <div>
+        <div class="result-eyebrow">Extraction overview</div>
+        <h4>${escapeHtml(fileName)}${docTitle}</h4>
+      </div>
+      <div class="stats-grid">
+        <div class="mini-stat">
+          <span>Pages</span>
+          <strong>${escapeHtml(pageCount)}</strong>
+        </div>
+        <div class="mini-stat">
+          <span>${isOnlineResult ? 'Chars Recovered' : 'Chars'}</span>
+          <strong>${escapeHtml(charCount)}</strong>
+        </div>
+        <div class="mini-stat">
+          <span>Confidence</span>
+          <strong>${Number(confidence).toFixed(1)}%</strong>
+        </div>
+        <div class="mini-stat">
+          <span>Mode</span>
+          <strong>${escapeHtml(modeLabel)}</strong>
+        </div>
+      </div>
+    </div>
+
+    ${isOnlineResult ? `
+      <div class="result-card">
+        ${buildSectionTitle('AI Restored Readable Text (Maximum Retrieval)')}
+        ${docSummary}
+        ${restoredTextMarkup}
+        
+        <details style="margin-top: 1.2rem; padding: 0.6rem 0.8rem; border-radius: 8px; background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0,0,0,0.06);">
+          <summary style="cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--muted); outline: none;">
+            🔍 View Raw OCR Extracted Text (${extractedText.length} characters)
+          </summary>
+          <div style="margin-top: 0.75rem;">
+            ${rawTextMarkup}
           </div>
-        `;
-      })
-      .join('')
-  : '<span class="empty-state">No structured metadata detected.</span>';
-
-const rawTextMarkup = extractedText
-  ? `<div class="raw-text">${escapeHtml(extractedText)}</div>`
-  : '<span class="empty-state">No extracted text available.</span>';
-
-overviewOutput.innerHTML = `
-  <div class="result-card hero-card">
-    <div>
-      <div class="result-eyebrow">Extraction overview</div>
-      <h4>${escapeHtml(fileName)}</h4>
-    </div>
-    <div class="stats-grid">
-      <div class="mini-stat">
-        <span>Pages</span>
-        <strong>${escapeHtml(pageCount)}</strong>
+        </details>
       </div>
-      <div class="mini-stat">
-        <span>Chars</span>
-        <strong>${escapeHtml(charCount)}</strong>
+      ${sectionsMarkup}
+    ` : `
+      <div class="result-card">
+        ${buildSectionTitle('OCR Extracted Text')}
+        ${rawTextMarkup}
       </div>
-      <div class="mini-stat">
-        <span>Confidence</span>
-        <strong>${Number(confidence).toFixed(2)}%</strong>
-      </div>
-      <div class="mini-stat">
-        <span>Mode</span>
-        <strong>${escapeHtml(modeLabel)}</strong>
-      </div>
-    </div>
-  </div>
-  <div class="result-card">
-    ${buildSectionTitle('OCR extracted text')}
-    ${rawTextMarkup}
-  </div>
-`;
-
-jsonOutput.innerHTML = `
-  <div class="result-shell">
-    <div class="result-card">
-      ${buildSectionTitle('Document preview')}
-      <p class="summary-text">${escapeHtml(previewText)}</p>
-    </div>
-
-    <div class="result-card">
-      ${buildSectionTitle('Detected details')}
-      ${detailMarkup}
-    </div>
-  </div>
-`;
+    `}
+  `;
 }
 
 async function parseResume() {

@@ -1,9 +1,14 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
 # --- PATHS & ENVIRONMENT ---
 BASE_DIR = Path(__file__).resolve().parent.parent
+venv_site = BASE_DIR / ".venv" / "Lib" / "site-packages"
+if venv_site.exists() and str(venv_site) not in sys.path:
+    sys.path.insert(0, str(venv_site))
+
 load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 
 TESSERACT_PATH = os.getenv("TESSERACT_PATH")

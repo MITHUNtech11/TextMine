@@ -6,8 +6,8 @@ class RecoveryAgent(BaseAgent):
     
     def __init__(self):
         super().__init__("RecoveryAgent")
-        self.transient_errors = ['timeout', 'connection', '429', 'resource_exhausted', 'quota']
-        self.retriable_errors = ['quality check', 'parsing failed', 'confidence']
+        self.transient_errors = ['timeout', 'connection', '429', 'resource_exhausted', 'quota', 'rate limit', 'overloaded']
+        self.retriable_errors = ['parsing failed', 'json decode', 'temporary']
         self.fatal_errors = ['invalid api key', 'authentication', 'file not found', 'unsupported']
     
     def can_recover(self, context: AgentContext, error: Exception) -> bool:

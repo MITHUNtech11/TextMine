@@ -74,9 +74,9 @@ async def parse_resume_offline(file: UploadFile = File(...)):
 @app.post("/parse_resume/online", response_model=OnlineParseResponse)
 async def parse_resume_online(file: UploadFile = File(...)):
     """
-    Full parsing endpoint with OCR + Gemini 3 Flash
+    High-accuracy document text extraction and reconstruction using OCR + Gemini AI.
     
-    Returns structured resume data with all fields extracted and validated.
+    Returns clean, error-corrected readable text along with structured sections and metadata.
     Requires internet connection and Google API key.
     """
     temp_dir = tempfile.gettempdir()

@@ -38,10 +38,13 @@ class OfflineParseResponse(BaseModel):
 
 class OnlineParseResponse(BaseModel):
     """Response model for online parsing with Gemini"""
-    parsed_json: Dict[str, Any] = Field(description="Structured resume data")
+    readable_text: str = Field(description="Reconstructed and cleaned readable text from AI")
+    parsed_json: Dict[str, Any] = Field(description="Structured document data, sections, and recovery metrics")
     extracted_text: str = Field(description="Raw extracted text from OCR")
     page_count: int = Field(description="Number of pages processed")
+    confidence_score: float = Field(default=85.0, description="Readability and recovery confidence score (0-100)")
     processing_mode: Literal["online"] = "online"
+
 
 
 # ============================================================
@@ -154,9 +157,11 @@ class ResumeParsingOrchestrator:
             print("="*60 + "\n")
             
             return OnlineParseResponse(
-                parsed_json=context.parsed_json,
-                extracted_text=context.extracted_text,
+                readable_text=context.readable_text or context.extracted_text or "",
+                parsed_json=context.parsed_json or {},
+                extracted_text=context.extracted_text or "",
                 page_count=context.page_count,
+                confidence_score=context.confidence_score,
                 processing_mode="online"
             )
         

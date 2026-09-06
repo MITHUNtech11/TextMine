@@ -10,6 +10,7 @@ class AgentContext:
     temp_dir: str
     pdf_path: Optional[str] = None
     extracted_text: Optional[str] = None
+    readable_text: Optional[str] = None
     parsed_json: Optional[Dict[str, Any]] = None
     current_stage: ProcessingStage = ProcessingStage.VALIDATION
     error_count: int = 0
